@@ -1,0 +1,14 @@
+.vscode/
+.pytest_cache/
+.mypy_cache/
+.benchmarks/
+__pycache__/
+*.pyc
+.env
+
+# Nox
+.nox/
+
+# Sphinx
+_build/
+build/

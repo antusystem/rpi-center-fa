@@ -34,7 +34,7 @@ Version
 .. role:: bash(code)
    :language: bash
 
-* :bash:`V. 0.1.1`
+* :bash:`V. 0.1.2`
 
 Extra Links
 ===========

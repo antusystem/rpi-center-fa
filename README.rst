@@ -22,6 +22,8 @@ Configuration
 This projects uses `Python Poetry <https://https://python-poetry.org/>`_ for package managment.
 The development environment is controlled with `Mini-Conda <https://anaconda.org/anaconda/conda/>`_.
 
+To build with docker, go to the project directory and execute: ``docker build -t 'rpi-center:fa' .``.
+Then, to run it you use: ``docker run --rm --name rpi-center-fa1 -p 8000:8000 -it rpi-center:f``.
 
 License
 =======
@@ -34,7 +36,7 @@ Version
 .. role:: bash(code)
    :language: bash
 
-* :bash:`V. 0.1.2`
+* :bash:`V. 0.1.3`
 
 Extra Links
 ===========

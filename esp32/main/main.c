@@ -7,7 +7,9 @@
    CONDITIONS OF ANY KIND, either express or implied.
 */
 #include <stdio.h>
+#include <string.h>
 #include "AM2301.h"
+#include "requests.h"
 #include "sdkconfig.h"
 #include "driver/gpio.h"
 #include "esp_system.h"
@@ -18,17 +20,27 @@
 #include "freertos/queue.h"
 #include "freertos/task.h"
 
+// For WIFI
+#include "esp_wifi.h"
+#include "esp_event.h"
+#include "nvs_flash.h"
+
+/*HTTP buffer*/
+#define MAX_HTTP_RECV_BUFFER 1024
+#define MAX_HTTP_OUTPUT_BUFFER 2048
+
+#define LED (GPIO_NUM_2)
+
 // Queue Handler
 QueueHandle_t xQueue_temp;
 
 EventGroupHandle_t event_group = NULL;
 
 // Bit for tasks
-const int TEMP_BIT = BIT1;
-const int HTTP_BIT = BIT2;
+const int TEMP_BIT = BIT2;
+const int HTTP_BIT = BIT3;
 
-void app_main(void)
-{
+void app_main(void){
     printf("Hello world!\n");
 
     /* Print chip information */
@@ -50,11 +62,24 @@ void app_main(void)
     ESP_LOGW("app_main", "Warning");
     ESP_LOGI("app_main", "Info");
     ESP_LOGD("app_main", "Debug");
-    ESP_LOGV("app_main", "Verbose");    
+    ESP_LOGV("app_main", "Verbose");
 
+    // Wifi init
+    //Initialize NVS
+    esp_err_t ret = nvs_flash_init();
+    if (ret == ESP_ERR_NVS_NO_FREE_PAGES || ret == ESP_ERR_NVS_NEW_VERSION_FOUND) {
+      ESP_ERROR_CHECK(nvs_flash_erase());
+      ret = nvs_flash_init();
+    }
+    ESP_ERROR_CHECK(ret); 
+    // ESP_LOGI(TAG, "ESP_WIFI_MODE_STA");
+    wifi_init_sta();
+
+    // Task and Queue init
     event_group = xEventGroupCreate();
     // Creting Queue for Temperature Data
     xQueue_temp = xQueueCreate(1, sizeof(AM2301_data_t));
+    // Initiating Temperature Task
     xTaskCreatePinnedToCore(&Temp_Task, "Temp_Task", 1024*4, NULL, 5, NULL, 1);
 
     // Initiating Temp_Task

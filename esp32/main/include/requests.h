@@ -5,7 +5,7 @@
 #define ESP_MAXIMUM_RETRY  CONFIG_ESP_MAXIMUM_RETRY
 
 /* Tareas Asociadas*/
-// void http_task(void *P);
+void http_Task(void *P);
 
 /*Funciones Asociadas*/
 static void event_handler(void* arg, esp_event_base_t event_base,

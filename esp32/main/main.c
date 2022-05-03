@@ -81,7 +81,9 @@ void app_main(void){
     xQueue_temp = xQueueCreate(1, sizeof(AM2301_data_t));
     // Initiating Temperature Task
     xTaskCreatePinnedToCore(&Temp_Task, "Temp_Task", 1024*4, NULL, 5, NULL, 1);
+    // Initiating HTTP Task
+    xTaskCreatePinnedToCore(&http_Task, "http_Task", 1024*4, NULL, 5, NULL, 0);
 
-    // Initiating Temp_Task
+    // Starting Temp_Task
     xEventGroupSetBits(event_group, TEMP_BIT);
 }

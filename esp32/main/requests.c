@@ -7,6 +7,7 @@
    CONDITIONS OF ANY KIND, either express or implied.
 */
 #include <string.h>
+#include "AM2301.h"
 #include "requests.h"
 #include "driver/gpio.h"
 #include "esp_system.h"
@@ -36,6 +37,13 @@
 /* FreeRTOS event group to signal when we are connected*/
 static EventGroupHandle_t s_wifi_event_group;
 
+/*Handlers externos*/
+extern EventGroupHandle_t event_group;
+extern QueueHandle_t xQueue_temp;
+
+/*Bits externos para los eventos*/
+extern const int HTTP_BIT;
+
 /* The event group allows multiple bits for each event, but we only care about two events:
  * - we are connected to the AP with an IP
  * - we failed to connect after the maximum amount of retries */
@@ -43,6 +51,8 @@ static EventGroupHandle_t s_wifi_event_group;
 #define WIFI_FAIL_BIT      BIT1
 
 static const char *TAG = "WIFI station";
+static const char *H_Tag = "HTTP_Task";
+
 
 static int s_retry_num = 0;
 
@@ -169,5 +179,29 @@ void request_main(void){
     ESP_LOGI(TAG, "ESP_WIFI_MODE_STA");
     wifi_init_sta();
 
-    // xTaskCreatePinnedToCore(&http_test_task, "http_test_task", 8192*4, NULL, 5, NULL,1);
+    // xTaskCreatePinnedToCore(&http_task, "http_task", 8192*4, NULL, 5, NULL,1);
+}
+
+void http_Task(void *P){
+	ESP_LOGI(H_Tag, "****** Starting HTTP_Task ****** \r\n");
+    float temperature = 0, humidity = 0;
+    bool error = false;
+    AM2301_data_t Thum2;
+    for(;;){
+		// Waiting for signal to begin
+    	xEventGroupWaitBits(event_group, HTTP_BIT, pdTRUE, true, portMAX_DELAY);
+    	ESP_LOGW(H_Tag, "****** Inside HTTP_Task ****** \r\n");
+        // Retrieving sensor data
+	    if(xQueueReceive(xQueue_temp, &Thum2, (portTickType) 4000 / portTICK_PERIOD_MS)){
+	    	humidity = Thum2.Prom_hum[Thum2.pos_temp-1];
+	    	temperature = Thum2.Prom_temp[Thum2.pos_temp-1];
+	    	error = true;
+	    } else {
+	    	error = false;
+	    }
+    	ESP_LOGW(H_Tag,
+                 "Humidity is: %.1f %%, Temperature is: %.1f C \r\n",
+     			 humidity,temperature);
+        ESP_LOGW(H_Tag, "Error is: %d\r\n", error);
+    }
 }

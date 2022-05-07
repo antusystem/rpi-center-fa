@@ -73,4 +73,6 @@ async def home(request: Request):
 
 @app.post("/temperature/", response_class=HTMLResponse)
 async def page(request: Request, data: TempData):
+    logger.info(f"Request: {request}")
+    logger.info(f"data: {data}")
     return templates.TemplateResponse("temperature.html", {"request": request, "data": data})

@@ -82,8 +82,9 @@ void app_main(void){
     // Initiating Temperature Task
     xTaskCreatePinnedToCore(&Temp_Task, "Temp_Task", 1024*4, NULL, 5, NULL, 1);
     // Initiating HTTP Task
-    xTaskCreatePinnedToCore(&http_Task, "http_Task", 1024*4, NULL, 5, NULL, 0);
+    xTaskCreatePinnedToCore(&http_Task, "http_Task", 1024*8, NULL, 5, NULL, 0);
 
     // Starting Temp_Task
     xEventGroupSetBits(event_group, TEMP_BIT);
+    xEventGroupSetBits(event_group, HTTP_BIT);
 }

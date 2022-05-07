@@ -7,26 +7,27 @@
    CONDITIONS OF ANY KIND, either express or implied.
 */
 #include <string.h>
+#include <stdlib.h>
 #include "AM2301.h"
 #include "requests.h"
 #include "driver/gpio.h"
-#include "esp_system.h"
-#include "esp_wifi.h"
 #include "esp_event.h"
 #include "esp_log.h"
+#include "esp_system.h"
+#include "esp_wifi.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "freertos/event_groups.h"
 #include "nvs_flash.h"
 
-/*
-#include <stdlib.h>
+// For the requests
+// #include <stdlib.h> 
 #include "esp_http_client.h"
+#include "esp_crt_bundle.h"
 #include "esp_netif.h"
 #include "esp_tls.h"
 #include "lwip/err.h"
 #include "lwip/sys.h"
-*/
 
 /*HTTP buffer*/
 #define MAX_HTTP_RECV_BUFFER 1024
@@ -53,8 +54,80 @@ extern const int HTTP_BIT;
 static const char *TAG = "WIFI station";
 static const char *H_Tag = "HTTP_Task";
 
+char url_string[512] = "http://192.168.250.6:8000";
+
 
 static int s_retry_num = 0;
+
+esp_err_t _http_event_handler(esp_http_client_event_t *evt)
+{
+    static char *output_buffer;  // Buffer to store response of http request from event handler
+    static int output_len;       // Stores number of bytes read
+    switch(evt->event_id) {
+        case HTTP_EVENT_ERROR:
+            ESP_LOGD(TAG, "HTTP_EVENT_ERROR");
+            break;
+        case HTTP_EVENT_ON_CONNECTED:
+            ESP_LOGD(TAG, "HTTP_EVENT_ON_CONNECTED");
+            break;
+        case HTTP_EVENT_HEADER_SENT:
+            ESP_LOGD(TAG, "HTTP_EVENT_HEADER_SENT");
+            break;
+        case HTTP_EVENT_ON_HEADER:
+            ESP_LOGD(TAG, "HTTP_EVENT_ON_HEADER, key=%s, value=%s", evt->header_key, evt->header_value);
+            break;
+        case HTTP_EVENT_ON_DATA:
+            ESP_LOGD(TAG, "HTTP_EVENT_ON_DATA, len=%d", evt->data_len);
+            /*
+             *  Check for chunked encoding is added as the URL for chunked encoding used in this example returns binary data.
+             *  However, event handler can also be used in case chunked encoding is used.
+             */
+            if (!esp_http_client_is_chunked_response(evt->client)) {
+                // If user_data buffer is configured, copy the response into the buffer
+                if (evt->user_data) {
+                    memcpy(evt->user_data + output_len, evt->data, evt->data_len);
+                } else {
+                    if (output_buffer == NULL) {
+                        output_buffer = (char *) malloc(esp_http_client_get_content_length(evt->client));
+                        output_len = 0;
+                        if (output_buffer == NULL) {
+                            ESP_LOGE(TAG, "Failed to allocate memory for output buffer");
+                            return ESP_FAIL;
+                        }
+                    }
+                    memcpy(output_buffer + output_len, evt->data, evt->data_len);
+                }
+                output_len += evt->data_len;
+            }
+
+            break;
+        case HTTP_EVENT_ON_FINISH:
+            ESP_LOGD(TAG, "HTTP_EVENT_ON_FINISH");
+            if (output_buffer != NULL) {
+                // Response is accumulated in output_buffer. Uncomment the below line to print the accumulated response
+                // ESP_LOG_BUFFER_HEX(TAG, output_buffer, output_len);
+                free(output_buffer);
+                output_buffer = NULL;
+            }
+            output_len = 0;
+            break;
+        case HTTP_EVENT_DISCONNECTED:
+            ESP_LOGI(TAG, "HTTP_EVENT_DISCONNECTED");
+            int mbedtls_err = 0;
+            esp_err_t err = esp_tls_get_and_clear_last_error(evt->data, &mbedtls_err, NULL);
+            if (err != 0) {
+                if (output_buffer != NULL) {
+                    free(output_buffer);
+                    output_buffer = NULL;
+                }
+                output_len = 0;
+                ESP_LOGI(TAG, "Last esp error code: 0x%x", err);
+                ESP_LOGI(TAG, "Last mbedtls failure: 0x%x", mbedtls_err);
+            }
+            break;
+    }
+    return ESP_OK;
+}
 
 static void event_handler(void* arg, esp_event_base_t event_base,
                                 int32_t event_id, void* event_data){
@@ -78,14 +151,6 @@ static void event_handler(void* arg, esp_event_base_t event_base,
 }
 
 void wifi_init_sta(void){
-    //Change it the pin that has a led
-	gpio_pad_select_gpio(LED);
-	gpio_set_direction(LED, GPIO_MODE_OUTPUT);
-	gpio_set_level(LED, 1);
-    vTaskDelay(1000 / portTICK_PERIOD_MS);
-	gpio_set_level(LED, 0);
-    vTaskDelay(1000 / portTICK_PERIOD_MS);
-	gpio_set_level(LED, 1);
     s_wifi_event_group = xEventGroupCreate();
 
     ESP_ERROR_CHECK(esp_netif_init());
@@ -157,29 +222,9 @@ void wifi_init_sta(void){
     //Change it the pin that has a led
 	gpio_pad_select_gpio(LED);
 	gpio_set_direction(LED, GPIO_MODE_OUTPUT);
-	gpio_set_level(LED, 0);
+	gpio_set_level(LED, 1);
     vTaskDelay(1000 / portTICK_PERIOD_MS);
-	gpio_set_level(LED, 1);
-}
-
-void request_main(void){
-    //Initialize NVS
-    esp_err_t ret = nvs_flash_init();
-    if (ret == ESP_ERR_NVS_NO_FREE_PAGES || ret == ESP_ERR_NVS_NEW_VERSION_FOUND) {
-      ESP_ERROR_CHECK(nvs_flash_erase());
-      ret = nvs_flash_init();
-    }
-    ESP_ERROR_CHECK(ret);
-
-    //Change it the pin that has a led
-	gpio_pad_select_gpio(LED);
-	gpio_set_direction(LED, GPIO_MODE_OUTPUT);
-	gpio_set_level(LED, 1);
-
-    ESP_LOGI(TAG, "ESP_WIFI_MODE_STA");
-    wifi_init_sta();
-
-    // xTaskCreatePinnedToCore(&http_task, "http_task", 8192*4, NULL, 5, NULL,1);
+	gpio_set_level(LED, 0);
 }
 
 void http_Task(void *P){
@@ -187,10 +232,23 @@ void http_Task(void *P){
     float temperature = 0, humidity = 0;
     bool error = false;
     AM2301_data_t Thum2;
+    char local_response_buffer[MAX_HTTP_OUTPUT_BUFFER] = {0};
+    esp_http_client_config_t config = {
+        .url = url_string,
+        .event_handler = _http_event_handler,
+        .user_data = local_response_buffer,        // Pass address of local buffer to get response
+        .disable_auto_redirect = true,
+    };
+
     for(;;){
 		// Waiting for signal to begin
     	xEventGroupWaitBits(event_group, HTTP_BIT, pdTRUE, true, portMAX_DELAY);
     	ESP_LOGW(H_Tag, "****** Inside HTTP_Task ****** \r\n");
+        //Change it the pin that has a led
+        ESP_LOGI(H_Tag, "Turning led on");
+        gpio_pad_select_gpio(LED);
+        gpio_set_direction(LED, GPIO_MODE_OUTPUT);
+        gpio_set_level(LED, 1);
         // Retrieving sensor data
 	    if(xQueueReceive(xQueue_temp, &Thum2, (portTickType) 4000 / portTICK_PERIOD_MS)){
 	    	humidity = Thum2.Prom_hum[Thum2.pos_temp-1];
@@ -203,5 +261,26 @@ void http_Task(void *P){
                  "Humidity is: %.1f %%, Temperature is: %.1f C \r\n",
      			 humidity,temperature);
         ESP_LOGW(H_Tag, "Error is: %d\r\n", error);
-    }
+            ESP_LOGI("TAG", "Configuirando");
+
+        ESP_LOGI(TAG, "Creating Client");
+        esp_http_client_handle_t client = esp_http_client_init(&config);
+
+        // GET
+        ESP_LOGI(H_Tag, "GET Request");
+        esp_err_t err = esp_http_client_perform(client);
+        if (err == ESP_OK) {
+            ESP_LOGI(H_Tag, "HTTP GET Status = %d, content_length = %d",
+                    esp_http_client_get_status_code(client),
+                    esp_http_client_get_content_length(client));
+        } else {
+            ESP_LOGE(H_Tag, "HTTP GET request failed: %s", esp_err_to_name(err));
+        }
+        ESP_LOGI(H_Tag, "BUFFER HEX");
+        ESP_LOG_BUFFER_HEX(H_Tag, local_response_buffer, strlen(local_response_buffer));
+
+        ESP_LOGI(H_Tag, "Turning led off");
+        vTaskDelay(1000 / portTICK_PERIOD_MS);
+        gpio_set_level(LED, 0);
+        }
 }

@@ -86,5 +86,4 @@ void app_main(void){
 
     // Starting Temp_Task
     xEventGroupSetBits(event_group, TEMP_BIT);
-    xEventGroupSetBits(event_group, HTTP_BIT);
 }

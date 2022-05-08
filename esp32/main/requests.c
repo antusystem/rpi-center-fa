@@ -238,6 +238,8 @@ void http_Task(void *P){
         .event_handler = _http_event_handler,
         .user_data = local_response_buffer,        // Pass address of local buffer to get response
         .disable_auto_redirect = true,
+        .disable_auto_redirect = false,
+        .max_redirection_count = 5,
     };
 
     for(;;){
@@ -259,7 +261,7 @@ void http_Task(void *P){
 	    }
     	ESP_LOGW(H_Tag,
                  "Humidity is: %.1f %%, Temperature is: %.1f C \r\n",
-     			 humidity,temperature);
+     			 humidity, temperature);
         ESP_LOGW(H_Tag, "Error is: %d\r\n", error);
             ESP_LOGI("TAG", "Configuirando");
 
@@ -278,6 +280,28 @@ void http_Task(void *P){
         }
         ESP_LOGI(H_Tag, "BUFFER HEX");
         ESP_LOG_BUFFER_HEX(H_Tag, local_response_buffer, strlen(local_response_buffer));
+
+        // POST
+        ESP_LOGI(TAG, "POST");
+        char post_data[100] = "";
+        /*
+        / If you have several sensors you can asociate every GPIO
+        / to the place and send that information in the Queue
+        */
+        sprintf(post_data, "{\"loc-data\":\"living\", \"temp-data\":%.1f}", temperature);
+        ESP_LOGI(TAG, "%s", post_data);
+        esp_http_client_set_url(client, "/temperature/");
+        esp_http_client_set_method(client, HTTP_METHOD_POST);
+        esp_http_client_set_header(client, "Content-Type", "application/json");
+        esp_http_client_set_post_field(client, post_data, strlen(post_data));
+        err = esp_http_client_perform(client);
+        if (err == ESP_OK) {
+            ESP_LOGI(TAG, "HTTP POST Status = %d, content_length = %d",
+                    esp_http_client_get_status_code(client),
+                    esp_http_client_get_content_length(client));
+        } else {
+            ESP_LOGE(TAG, "HTTP POST request failed: %s", esp_err_to_name(err));
+        }
 
         ESP_LOGI(H_Tag, "Turning led off");
         vTaskDelay(1000 / portTICK_PERIOD_MS);

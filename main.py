@@ -28,7 +28,7 @@ You will be able to:
 app = FastAPI(
     title="RPi-API-Center",
     description=description,
-    version="0.1.5",
+    version="0.1.6",
     # terms_of_service="http://example.com/terms/",
     contact={
         "name": "Alejandro Antunes",
@@ -71,8 +71,15 @@ async def home(request: Request):
     }
     return templates.TemplateResponse("temperature.html", {"request": request, "data": data})
 
-@app.post("/temperature/", response_class=HTMLResponse)
+@app.get("/temperature/", response_class=HTMLResponse)
 async def page(request: Request, data: TempData):
+    logger.info(f"Request: {request}")
+    logger.info(f"data: {data}")
+    return templates.TemplateResponse("temperature.html", {"request": request, "data": data})
+
+
+@app.post("/temperature/register", response_class=HTMLResponse)
+async def reg_temp(request: Request, data: TempData):
     logger.info(f"Request: {request}")
     logger.info(f"data: {data}")
     return templates.TemplateResponse("temperature.html", {"request": request, "data": data})

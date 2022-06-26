@@ -18,12 +18,10 @@ ARG APPDIR=rpi
 RUN mkdir $APPDIR
 WORKDIR $APPDIR
 COPY . .
-RUN poetry lock
+# RUN poetry lock
 RUN poetry install --no-dev
 
 FROM app-base as main
 
 EXPOSE 8000
 CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000", "--reload" ]
-
-

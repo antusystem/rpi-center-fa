@@ -6,6 +6,8 @@ from dotenv import load_dotenv
 from loguru import logger
 import psycopg
 
+from .models import TempData
+
 
 class DBHandler:
     """Handler for database queries.
@@ -53,7 +55,7 @@ class DBHandler:
         records = self.cur.fetchall()
         return records[0][0]
 
-    def register_value(self, data: dict[str, str | float]):
+    def register_value(self, data: TempData):
         """Register new value.
 
         Parameters
@@ -63,9 +65,10 @@ class DBHandler:
 
         """
         query = """
-            INSERT INTO temp_reg (date_at, fk_location, value)
-            VALUES (%s, %s, %s, %s)
+            INSERT INTO temp_reg (date_at, location, value)
+            VALUES (%s, %s, %s)
         """
-        self.cur.execute(query)
-        records = self.cur.fetchall()
+        logger.info(f"data register: {data}")
+        # self.cur.execute(query)
+        # records = self.cur.fetchall()
         return records[0][0]

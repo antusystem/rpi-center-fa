@@ -1,11 +1,11 @@
 """Raspberry Pi API Center."""
-from fastapi import FastAPI, Query, Path, Body, Request
+from fastapi import FastAPI, Request
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from loguru import logger
-from pydantic import BaseModel, Field
-from api.db_handler import DBHandler
+
+from api import DBHandler, TempData
 
 logger.trace("Starting FastAPI")
 description = """
@@ -41,28 +41,12 @@ app = FastAPI(
     },
 )
 
-
-class TempData(BaseModel):
-    location: str = Field(...,
-                          title="Location Data",
-                          alias="loc-data",
-                          min_length=3,
-                          max_length=20,
-                          description="Location from data",
-                          )
-    temperature: float = Body(...,
-                              title="Temperature Data",
-                              alias="temp-data",
-                              gt=-273.15,
-                              description="Data obtained by the sensor",
-                              )
-
-# db_handler = DBHandler()
 # app.include_router(unsplash.router)
 
 app.mount("/static", StaticFiles(directory="static/css"), name="static")
 
 templates = Jinja2Templates(directory="templates")
+
 
 @app.get("/", response_class=HTMLResponse)
 async def home(request: Request):
@@ -82,4 +66,6 @@ async def page(request: Request, data: TempData):
 async def reg_temp(request: Request, data: TempData):
     logger.info(f"Request: {request}")
     logger.info(f"data: {data}")
+    db_handler = DBHandler()
+    db_handler.register_value(data)
     return templates.TemplateResponse("temperature.html", {"request": request, "data": data})

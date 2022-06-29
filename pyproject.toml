@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "rpi-center-fa"
-version = "0.1.5"
+version = "0.1.7"
 description = "This project shows how to set a API for domotic systems with FastAPI"
 authors = ["Alejandro Antunes <antusystem@vivaldi.net>"]
 license = "Apache License 2.0"

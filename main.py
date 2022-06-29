@@ -1,5 +1,5 @@
 """Raspberry Pi API Center."""
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Body, Request
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
@@ -28,7 +28,7 @@ You will be able to:
 app = FastAPI(
     title="RPi-API-Center",
     description=description,
-    version="0.1.6",
+    version="0.1.7",
     # terms_of_service="http://example.com/terms/",
     contact={
         "name": "Alejandro Antunes",
@@ -56,16 +56,17 @@ async def home(request: Request):
     return templates.TemplateResponse("temperature.html", {"request": request, "data": data})
 
 @app.get("/temperature/", response_class=HTMLResponse)
-async def page(request: Request, data: TempData):
+async def page(request: Request):
     logger.info(f"Request: {request}")
-    logger.info(f"data: {data}")
-    return templates.TemplateResponse("temperature.html", {"request": request, "data": data})
+    db_handler = DBHandler()
+    last_value = db_handler.last_value()
+    return templates.TemplateResponse("temperature.html", {"request": request, "last_value": last_value})
 
 
 @app.post("/temperature/register", response_class=HTMLResponse)
-async def reg_temp(request: Request, data: TempData):
+async def reg_temp(request: Request, data: TempData = Body(...)):
     logger.info(f"Request: {request}")
     logger.info(f"data: {data}")
     db_handler = DBHandler()
-    db_handler.register_value(data)
+    db_handler.register_value(dict(data))
     return templates.TemplateResponse("temperature.html", {"request": request, "data": data})

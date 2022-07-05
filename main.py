@@ -66,6 +66,7 @@ async def page(request: Request, data: TempData):
 async def reg_temp(request: Request, data: TempData):
     logger.info(f"Request: {request}")
     logger.info(f"data: {data}")
+    logger.info(f"data: {dict(data)}")
     db_handler = DBHandler()
     db_handler.register_value(data)
     return templates.TemplateResponse("temperature.html", {"request": request, "data": data})

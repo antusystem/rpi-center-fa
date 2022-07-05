@@ -54,8 +54,7 @@ extern const int HTTP_BIT;
 static const char *TAG = "WIFI station";
 static const char *H_Tag = "HTTP_Task";
 
-char url_string[512] = "http://192.168.250.6:8000";
-
+char url_string[512] = "http://192.168.250.8:8000";
 
 static int s_retry_num = 0;
 
@@ -129,8 +128,8 @@ esp_err_t _http_event_handler(esp_http_client_event_t *evt)
     return ESP_OK;
 }
 
-static void event_handler(void* arg, esp_event_base_t event_base,
-                                int32_t event_id, void* event_data){
+static void event_handler(void* arg, esp_event_base_t event_base, 
+                          int32_t event_id, void* event_data){
     if (event_base == WIFI_EVENT && event_id == WIFI_EVENT_STA_START) {
         esp_wifi_connect();
     } else if (event_base == WIFI_EVENT && event_id == WIFI_EVENT_STA_DISCONNECTED) {
@@ -269,6 +268,7 @@ void http_Task(void *P){
         esp_http_client_handle_t client = esp_http_client_init(&config);
 
         // GET
+        /*
         ESP_LOGI(H_Tag, "GET Request");
         esp_err_t err = esp_http_client_perform(client);
         if (err == ESP_OK) {
@@ -280,6 +280,7 @@ void http_Task(void *P){
         }
         ESP_LOGI(H_Tag, "BUFFER HEX");
         ESP_LOG_BUFFER_HEX(H_Tag, local_response_buffer, strlen(local_response_buffer));
+        */
 
         // POST
         ESP_LOGI(TAG, "POST");
@@ -288,9 +289,9 @@ void http_Task(void *P){
         / If you have several sensors you can asociate every GPIO
         / to the place and send that information in the Queue
         */
-        sprintf(post_data, "{\"loc-data\":\"living\", \"temp-data\":%.1f}", temperature);
+        sprintf(post_data, "{\"location\":\"living\", \"temperature\":%.1f}", temperature);
         ESP_LOGI(TAG, "%s", post_data);
-        esp_http_client_set_url(client, "/temperature/");
+        esp_http_client_set_url(client, "/temperature/register");
         esp_http_client_set_method(client, HTTP_METHOD_POST);
         esp_http_client_set_header(client, "Content-Type", "application/json");
         esp_http_client_set_post_field(client, post_data, strlen(post_data));

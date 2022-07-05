@@ -28,7 +28,7 @@ You will be able to:
 app = FastAPI(
     title="RPi-API-Center",
     description=description,
-    version="0.1.7",
+    version="0.1.8",
     # terms_of_service="http://example.com/terms/",
     contact={
         "name": "Alejandro Antunes",

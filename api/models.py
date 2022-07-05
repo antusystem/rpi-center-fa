@@ -11,7 +11,7 @@ class TempData(BaseModel):
                           max_length=20,
                           description="Location from data",
                           )
-    temperature: float = Field(...,
+    value: float = Field(...,
                                title="Temperature Data",
                                alias="temperature",
                                gt=-273.15,

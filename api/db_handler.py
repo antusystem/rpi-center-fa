@@ -49,7 +49,7 @@ class DBHandler:
 
         """
         query = """
-            SELECT value FROM temp_reg LIMIT 1 ORDER BY ID ASC
+            SELECT value FROM temperature ORDER BY date_at ASC LIMIT 1
         """
         self.cur.execute(query)
         records = self.cur.fetchall()
@@ -65,10 +65,15 @@ class DBHandler:
 
         """
         query = """
-            INSERT INTO temp_reg (date_at, location, value)
-            VALUES (%s, %s, %s)
+            INSERT INTO temperature (date_at, location, value)
+            VALUES (%s, %s, %s) RETURNING id
         """
         logger.info(f"data register: {data}")
-        # self.cur.execute(query)
-        # records = self.cur.fetchall()
+        date_at = datetime.now()
+        self.cur.execute(query, (date_at, data["location"], data["value"]))
+        records = self.cur.fetchall()
+        logger.info(f"records: {records}")
+        self.conn.commit()
+        self.cur.close()
+        self.conn.close()
         return records[0][0]
